@@ -95,7 +95,7 @@ CX_FLAGS+=\
     -Wa,asa,goff,xplink \
     -Wc,DLL,EXPORTALL \
     -Wa,DLL \
-    -Wc,"FLOAT(IEEE,FOLD,AFP)" \
+    -Wc,"FLOAT(IEEE,NOFOLD,AFP)" \
     -Wc,"ARCH($(ARCHLEVEL))" \
     -Wc,"TUNE($(TUNELEVEL))" \
     -Wc,"TARGET($(TGTLEVEL))"
