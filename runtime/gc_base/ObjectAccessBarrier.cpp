@@ -42,6 +42,9 @@
 #include "VMHelpers.hpp"
 #include "VMThreadListIterator.hpp"
 
+#include "VirtualMemory.hpp"
+#include "Math.hpp"
+
 bool 
 MM_ObjectAccessBarrier::initialize(MM_EnvironmentBase *env)
 {
@@ -112,6 +115,84 @@ MM_ObjectAccessBarrier::tearDown(MM_EnvironmentBase *env)
 void
 MM_ObjectAccessBarrier::copyArrayCritical(J9VMThread *vmThread, void **data, J9IndexableObject *arrayObject, jboolean *isCopy)
 {
+	MM_EnvironmentBase *env = MM_EnvironmentBase::getEnvironment(vmThread->omrVMThread);
+	GC_ArrayObjectModel *indexableObjectModel = &_extensions->indexableObjectModel;
+
+	/* Get size of array */
+	int32_t sizeInElements = (int32_t)indexableObjectModel->getSizeInElements(arrayObject);
+
+	if (0 < sizeInElements) {
+		uintptr_t sizeInBytes = indexableObjectModel->getDataSizeInBytes(arrayObject);
+
+		/* Prepare parameters for Virtual Memory allocation */
+		uint32_t memoryCategory = OMRMEM_CATEGORY_MM;
+		uintptr_t tailPadding = 0;
+		void *preferredAddress = NULL;
+		void *ceiling = NULL;
+		uintptr_t alignment = 64;
+		uintptr_t mode = (OMRPORT_VMEM_MEMORY_MODE_READ | OMRPORT_VMEM_MEMORY_MODE_WRITE);
+		uintptr_t options = 0;
+		uintptr_t pageSize = _extensions->gcmetadataPageSize;
+		uintptr_t pageFlags = _extensions->gcmetadataPageFlags;
+		uintptr_t headerSize = sizeof(uintptr_t) * 2;
+
+		/* Total size of required virtual memory */
+		uintptr_t sizeWithHeader = sizeInBytes + headerSize;
+		uintptr_t allocateSize = sizeWithHeader + (2 * pageSize);
+
+//		printf("-In copyArrayCritical: %p: object %p, elements %d, sizeInBytes %p, total %p\n", vmThread, arrayObject, sizeInElements, (void *)sizeInBytes, (void *)allocateSize);
+
+		/* Create Virtual Memory instance */
+		MM_VirtualMemory *instance = MM_VirtualMemory::newInstance(env, alignment, allocateSize, pageSize, pageFlags, tailPadding, preferredAddress, ceiling, mode, options, memoryCategory);
+
+		if (NULL != instance) {
+			/* adjust start address that way array data ends at the end of physical page */
+			uintptr_t *base = (uintptr_t *)instance->getHeapBase();
+			uintptr_t *start = (uintptr_t *)(MM_Math::roundToCeiling(pageSize, (uintptr_t)base + sizeWithHeader) - sizeWithHeader);
+
+			/* Commit range */
+			if (instance->commitMemory(start, sizeWithHeader)) {
+
+//				printf("--%p: Instance %p, base %p, start %p, end %p\n", vmThread, instance, base, start, (void *)((uintptr_t)start + sizeWithHeader));
+
+				/* Write header: eye catcher and Virtual Memory instance*/
+				*start++ = 0xdeadbee7;
+				*start++ = (uintptr_t)instance;
+
+				/* Actual array data start */
+				*data = start;
+
+				/* Copy array data to virtual memory */
+				indexableObjectModel->memcpyFromArray(*data, arrayObject, 0, sizeInElements);
+
+				/* Temporary steal this option to test that memory protection actually works */
+				if (0 != _extensions->fvtest_tarokFirstContext) {
+					printf("!!! Attempting to write to protected memory, expecting crash!!!\n");
+					uintptr_t *testAddress = (uintptr_t *)((uintptr_t)start + sizeInBytes);
+					*testAddress = 0xdeadbeef;
+				}
+			} else {
+				printf ("!!! %p: Memory start %p, size %p can not be committed!\n", vmThread, start, (void *)allocateSize);
+			}
+
+			vmThread->jniCriticalCopyCount += 1;
+			if (NULL != isCopy) {
+				*isCopy = JNI_TRUE;
+			}
+		} else {
+			printf ("!!! Virtual memory for JNI Critical can not be allocated\n");
+		}
+	} else {
+		/* nobody should access elements of 0-length array, so poison it
+		 * Please note overflowed (negative) size goes here as well */
+		*data = (void *)UDATA_MAX;
+	}
+}
+
+#if 0
+void
+MM_ObjectAccessBarrier::copyArrayCritical(J9VMThread *vmThread, void **data, J9IndexableObject *arrayObject, jboolean *isCopy)
+{
 	J9InternalVMFunctions *functions = vmThread->javaVM->internalVMFunctions;
 	GC_ArrayObjectModel *indexableObjectModel = &_extensions->indexableObjectModel;
 
@@ -129,7 +210,44 @@ MM_ObjectAccessBarrier::copyArrayCritical(J9VMThread *vmThread, void **data, J9I
 		}
 	}
 }
+#endif
 
+void
+MM_ObjectAccessBarrier::copyBackArrayCritical(J9VMThread *vmThread, void *elems, J9IndexableObject **arrayObject, jint mode)
+{
+	MM_EnvironmentBase *env = MM_EnvironmentBase::getEnvironment(vmThread->omrVMThread);
+	GC_ArrayObjectModel *indexableObjectModel = &_extensions->indexableObjectModel;
+	int32_t sizeInElements = (int32_t)indexableObjectModel->getSizeInElements(*arrayObject);
+
+//	printf("-In copyBackArrayCritical %p: Array %p, number of elements %d, data location %p\n", vmThread, *arrayObject, sizeInElements, elems);
+
+	if (0 < sizeInElements) {
+
+		/* get header data */
+		uintptr_t eyecatcher = *((uintptr_t *)elems - 2);
+		MM_VirtualMemory *instance = (MM_VirtualMemory *)(*((uintptr_t *)elems - 1));
+
+//		printf("--Decoded header %p: Eyecatcher %p, object %p, instance %p\n", vmThread, (void *)eyecatcher, object, instance);
+
+		Assert_MM_true(0xdeadbee7 == eyecatcher);
+
+		if (JNI_ABORT != mode) {
+			indexableObjectModel->memcpyToArray(*arrayObject, 0, sizeInElements, elems);
+		}
+
+		instance->kill(env);
+
+		if (vmThread->jniCriticalCopyCount > 0) {
+			vmThread->jniCriticalCopyCount -= 1;
+		} else {
+			Assert_MM_invalidJNICall();
+		}
+	} else {
+		Assert_MM_true((void *)UDATA_MAX == elems);
+	}
+}
+
+#if 0
 void
 MM_ObjectAccessBarrier::copyBackArrayCritical(J9VMThread *vmThread, void *elems, J9IndexableObject **arrayObject, jint mode)
 {
@@ -153,6 +271,7 @@ MM_ObjectAccessBarrier::copyBackArrayCritical(J9VMThread *vmThread, void *elems,
 		Assert_MM_invalidJNICall();
 	}
 }
+#endif
 
 void
 MM_ObjectAccessBarrier::copyStringCritical(J9VMThread *vmThread, jchar **data,
