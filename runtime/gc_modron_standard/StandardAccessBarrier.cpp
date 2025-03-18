@@ -366,7 +366,9 @@ MM_StandardAccessBarrier::jniGetPrimitiveArrayCritical(J9VMThread* vmThread, jar
 {
 	void *data = NULL;
 
-	bool shouldCopy = false;
+//	bool shouldCopy = false;
+	bool shouldCopy = true;
+
 	bool alwaysCopyInCritical = (vmThread->javaVM->runtimeFlags & J9_RUNTIME_ALWAYS_COPY_JNI_CRITICAL) == J9_RUNTIME_ALWAYS_COPY_JNI_CRITICAL;
 	if (alwaysCopyInCritical) {
 		shouldCopy = true;
@@ -394,7 +396,9 @@ MM_StandardAccessBarrier::jniReleasePrimitiveArrayCritical(J9VMThread* vmThread,
 {
 	J9JavaVM *javaVM = vmThread->javaVM;
 
-	bool shouldCopy = false;
+//	bool shouldCopy = false;
+	bool shouldCopy = true;
+
 	bool alwaysCopyInCritical = (javaVM->runtimeFlags & J9_RUNTIME_ALWAYS_COPY_JNI_CRITICAL) == J9_RUNTIME_ALWAYS_COPY_JNI_CRITICAL;
 	if (alwaysCopyInCritical) {
 		shouldCopy = true;
