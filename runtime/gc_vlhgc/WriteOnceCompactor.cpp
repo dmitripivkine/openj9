@@ -1352,6 +1352,18 @@ MM_WriteOnceCompactor::fixupClassLoaderObject(MM_EnvironmentVLHGC* env, J9Object
 		Assert_MM_true(classLoaderObject == getForwardWrapper(env, classLoader->classLoaderObject, cache));
 		classLoader->classLoaderObject = classLoaderObject;
 
+		if (classLoader ==  _javaVM->systemClassLoader) {
+			printf("----WOC::fixupClassLoaderObject Fixup Modules for System classloader %p\n", classLoader);
+		}
+
+		if (classLoader ==  _javaVM->applicationClassLoader) {
+			printf("----WOC::fixupClassLoaderObject Fixup Modules for Application classloader %p\n", classLoader);
+		}
+
+		if (classLoader ==  _javaVM->extensionClassLoader) {
+			printf("----WOC::fixupClassLoaderObject Fixup Modules for Extensions classloader %p\n", classLoader);
+		}
+
 		/*
 		 * Fixup modules
 		 */
@@ -1771,6 +1783,19 @@ MM_WriteOnceCompactor::fixupRoots(MM_EnvironmentVLHGC *env)
 			/* TODO: we could optimize this by only examining class loaders in fixup regions */
 			if (J9MODRON_HANDLE_NEXT_WORK_UNIT(env)) {
 				if (NULL != classLoader->classLoaderObject) {
+
+					if (classLoader ==  _javaVM->systemClassLoader) {
+						printf("----WOC::fixupRoots Discovered System classloader %p\n", classLoader);
+					}
+
+					if (classLoader ==  _javaVM->applicationClassLoader) {
+						printf("----WOC::fixupRoots Discovered Application classloader %p\n", classLoader);
+					}
+
+					if (classLoader ==  _javaVM->extensionClassLoader) {
+						printf("----WOC::fixupRoots Discovered Extensions classloader %p\n", classLoader);
+					}
+
 					Assert_MM_true(NULL != classLoader->classHashTable);
 					J9Object *classLoaderObject = classLoader->classLoaderObject;
 					GC_ClassLoaderClassesIterator iterator(_extensions, classLoader);
@@ -1785,6 +1810,19 @@ MM_WriteOnceCompactor::fixupRoots(MM_EnvironmentVLHGC *env)
 					Assert_MM_true((classLoader == _javaVM->systemClassLoader)
 							|| (classLoader == _javaVM->applicationClassLoader)
 							|| (classLoader == _javaVM->extensionClassLoader));
+
+					if (classLoader ==  _javaVM->systemClassLoader) {
+						printf("----WOC::fixupRoots No object set for System classloader %p\n", classLoader);
+					}
+
+					if (classLoader ==  _javaVM->applicationClassLoader) {
+						printf("----WOC::fixupRoots No object set for Application classloader %p\n", classLoader);
+					}
+
+					if (classLoader ==  _javaVM->extensionClassLoader) {
+						printf("----WOC::fixupRoots No object set for Extensions classloader %p\n", classLoader);
+					}
+
 				}
 			}
 		}
