@@ -1731,11 +1731,11 @@ public:
 		Assert_MM_unreachable();
 	}
 
-	virtual void doClassLoader(J9ClassLoader *classLoader)
-	{
-		/* class loaders are fixed up as part of normal object fixup */
-		Assert_MM_unreachable();
-	}
+//	virtual void doClassLoader(J9ClassLoader *classLoader)
+//	{
+//		/* class loaders are fixed up as part of normal object fixup */
+//		Assert_MM_unreachable();
+//	}
 
 #if defined(J9VM_GC_SPARSE_HEAP_ALLOCATION)
 	virtual void doObjectInVirtualLargeObjectHeap(J9Object *objectPtr, bool *sparseHeapAllocation) {
@@ -1783,21 +1783,30 @@ MM_WriteOnceCompactor::fixupRoots(MM_EnvironmentVLHGC *env)
 			/* TODO: we could optimize this by only examining class loaders in fixup regions */
 			if (J9MODRON_HANDLE_NEXT_WORK_UNIT(env)) {
 				if (NULL != classLoader->classLoaderObject) {
+					Assert_MM_true(NULL != classLoader->classHashTable);
+					J9Object *classLoaderObject = classLoader->classLoaderObject;
 
 					if (classLoader ==  _javaVM->systemClassLoader) {
 						printf("----WOC::fixupRoots Discovered System classloader %p\n", classLoader);
+						if (NULL != classLoaderObject) {
+							rootScanner.doClassLoader(classLoader);
+						}
 					}
 
 					if (classLoader ==  _javaVM->applicationClassLoader) {
 						printf("----WOC::fixupRoots Discovered Application classloader %p\n", classLoader);
+						if (NULL != classLoaderObject) {
+							rootScanner.doClassLoader(classLoader);
+						}
 					}
 
 					if (classLoader ==  _javaVM->extensionClassLoader) {
 						printf("----WOC::fixupRoots Discovered Extensions classloader %p\n", classLoader);
+						if (NULL != classLoaderObject) {
+							rootScanner.doClassLoader(classLoader);
+						}
 					}
 
-					Assert_MM_true(NULL != classLoader->classHashTable);
-					J9Object *classLoaderObject = classLoader->classLoaderObject;
 					GC_ClassLoaderClassesIterator iterator(_extensions, classLoader);
 					J9Class *clazz = NULL;
 					while (NULL != (clazz = iterator.nextClass())) {
