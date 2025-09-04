@@ -1788,23 +1788,14 @@ MM_WriteOnceCompactor::fixupRoots(MM_EnvironmentVLHGC *env)
 
 					if (classLoader ==  _javaVM->systemClassLoader) {
 						printf("----WOC::fixupRoots Discovered System classloader %p\n", classLoader);
-						if (NULL != classLoaderObject) {
-							rootScanner.doClassLoader(classLoader);
-						}
 					}
 
 					if (classLoader ==  _javaVM->applicationClassLoader) {
 						printf("----WOC::fixupRoots Discovered Application classloader %p\n", classLoader);
-						if (NULL != classLoaderObject) {
-							rootScanner.doClassLoader(classLoader);
-						}
 					}
 
 					if (classLoader ==  _javaVM->extensionClassLoader) {
 						printf("----WOC::fixupRoots Discovered Extensions classloader %p\n", classLoader);
-						if (NULL != classLoaderObject) {
-							rootScanner.doClassLoader(classLoader);
-						}
 					}
 
 					GC_ClassLoaderClassesIterator iterator(_extensions, classLoader);
@@ -1814,6 +1805,7 @@ MM_WriteOnceCompactor::fixupRoots(MM_EnvironmentVLHGC *env)
 						Assert_MM_true(NULL != classObject);
 						_interRegionRememberedSet->rememberReferenceForCompact(env, classLoaderObject, classObject);
 					}
+
 				} else { 
 					/* Only system/app classloaders can have a null classloader object (only during early bootstrap) */
 					Assert_MM_true((classLoader == _javaVM->systemClassLoader)
