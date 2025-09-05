@@ -923,6 +923,8 @@ MM_ReclaimDelegate::reportCompactStart(MM_EnvironmentBase *env)
 	PORT_ACCESS_FROM_ENVIRONMENT(env);
 	Trc_MM_CompactStart(vmThread, getCompactionReasonAsString(compactReason));
 
+	printf("++++++ Compact start\n");
+
 	TRIGGER_J9HOOK_MM_PRIVATE_COMPACT_START(
 		extensions->privateHookInterface,
 		env->getOmrVMThread(),
@@ -943,6 +945,8 @@ MM_ReclaimDelegate::reportCompactEnd(MM_EnvironmentBase *env)
 
 	Trc_MM_CompactEnd(vmThread, stats->_movedBytes);
 	
+	printf("++++++ Compact end\n");
+
 	TRIGGER_J9HOOK_MM_OMR_COMPACT_END(
 		extensions->omrHookInterface,
 		env->getOmrVMThread(),

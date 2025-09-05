@@ -1843,6 +1843,8 @@ MM_IncrementalGenerationalGC::reportGMPIncrementStart(MM_EnvironmentVLHGC *env)
 	/* currently we only differ for the tracepoint since we still need to fire the global hook */
 	Trc_MM_GMPIncrementStart(env->getLanguageVMThread(), _extensions->globalVLHGCStats.gcCount, incrementNumber);
 	triggerGlobalGCStartHook(env);
+
+	printf("++++++ GMP Increment Start\n");
 }
 
 void
@@ -1860,6 +1862,9 @@ MM_IncrementalGenerationalGC::reportGMPIncrementEnd(MM_EnvironmentVLHGC *env)
 	);
 
 	triggerGlobalGCEndHook(env);
+
+	printf("++++++ GMP Increment End\n");
+
 }
 
 void
@@ -1868,6 +1873,8 @@ MM_IncrementalGenerationalGC::reportGlobalGCStart(MM_EnvironmentVLHGC *env)
 	/* currently we only differ for the tracepoint since we still need to fire the global hook */
 	Trc_MM_GlobalGCStart(env->getLanguageVMThread(), _extensions->globalVLHGCStats.gcCount);
 	triggerGlobalGCStartHook(env);
+
+	printf("++++++ Global GC Start\n");
 }
 
 void
@@ -1881,6 +1888,9 @@ MM_IncrementalGenerationalGC::reportGlobalGCEnd(MM_EnvironmentVLHGC *env)
 	);
 
 	triggerGlobalGCEndHook(env);
+
+	printf("++++++ Global GC End\n");
+
 }
 
 void
@@ -1951,6 +1961,8 @@ MM_IncrementalGenerationalGC::reportCopyForwardStart(MM_EnvironmentVLHGC *env)
 		j9time_hires_clock(),
 		J9HOOK_MM_PRIVATE_COPY_FORWARD_START,
 		&static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._copyForwardStats);
+
+	printf("++++++ CopyForward start\n");
 }
 
 void
@@ -1967,6 +1979,8 @@ MM_IncrementalGenerationalGC::reportCopyForwardEnd(MM_EnvironmentVLHGC *env, U_6
 		&static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._copyForwardStats,
 		&static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._workPacketStats,
 		&static_cast<MM_CycleStateVLHGC*>(env->_cycleState)->_vlhgcIncrementStats._irrsStats);
+
+	printf("++++++ CopyForward end\n");
 }
 
 bool
